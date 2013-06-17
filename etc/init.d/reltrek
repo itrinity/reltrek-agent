@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+###############################################################################
+# reltrek
+#
+# Written by itrinity, s.r.o. (http://itrinity.com)
+# A server monitoring daemon for www.reltrek.com
+#
+# Licensed under Simplified BSD License (see LICENSE)
+#
+###############################################################################
+#
+# chkconfig: 345 85 15
+# description: Reltrek Server Monitoring Agent
+
+### BEGIN INIT INFO
+# Provides: reltrek
+# Short-Description: Start and stop reltrek
+# Description: reltrek is the monitoring agent component for Reltrek
+# Required-Start:
+# Required-Stop:
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+### END INIT INFO
+
+AGENTPATH="/usr/bin/reltrek/agent.pl"
+AGENTUSER="reltrek"
+PIDPATH="/var/run/reltrek/"
+
+[ -f $AGENTPATH ] || echo "/usr/bin/reltrek not found"
+
+# Source function library.
+if [ -f /etc/init.d/functions ]; then
+        . /etc/init.d/functions
+fi
+
+if [ -f /etc/SuSE-release ]; then
+        . /etc/rc.status
+        rc_reset
+fi
+
+# Action to take
+case "$1" in
+  start)
+        if [ ! -f $PIDPATH ]; then
+            mkdir -p $PIDPATH
+            chown reltrek:reltrek $PIDPATH
+        fi
+
+        su $AGENTUSER -c "perl $AGENTPATH stop"
+        su $AGENTUSER -c "perl $AGENTPATH start"
+
+        if [ -f /etc/SuSE-release ]; then
+                rc_status -v
+        elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ] || [ -f /etc/gentoo-release ]; then
+                echo " Started"
+        else
+                success
+                echo
+        fi
+        echo
+    ;;
+  stop)
+        su $AGENTUSER -c "perl $AGENTPATH stop"
+
+        if [ -f /etc/SuSE-release ]; then
+                rc_status -v
+        elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ] || [ -f /etc/gentoo-release ]; then
+                echo " Stopped"
+        else
+                success
+                echo
+        fi
+        echo
+    ;;
+  restart)
+        $0 stop
+        $0 start
+    ;;
+  status)
+        su $AGENTUSER -c "perl $AGENTPATH status"
+
+        echo
+    ;;
+  *)
+        echo "Usage: /etc/init.d/reltrek start|stop|restart"
+        exit 1
+esac
+
+exit 0
